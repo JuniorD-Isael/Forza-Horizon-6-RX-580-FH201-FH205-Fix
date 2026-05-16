@@ -1,146 +1,202 @@
-# Forza RX 580 FH201/FH205 Fix
+# Forza AMD Universal Fix (APUs & Dedicadas)
 
-Fix experimental para placas **AMD RX 580 / Polaris** que recebem erro **FH201** ou **FH205** ao abrir o jogo.
+Este é um fix experimental focado em contornar os erros **FH201**, **FH205** e os congelamentos em tela preta causados pelo motor gráfico *ForzaTech* ao lidar com limitações de silício e subalocação de memória (VRAM).
 
-Criado por **João Lucas**.
+**Projeto Original:** [João Lucas](https://github.com/Megadroidgames/Forza-Horizon-6-RX-580-FH201-FH205-Fix)  
+**Variante e Manutenção deste Fork:** [JuniorD-Isael](https://github.com/JuniorD-Isael)  
+**Hardware Base de Testes:** AMD Radeon Vega 7 (Ryzen 5 5500U) rodando em ambiente Windows Insider Preview.
 
-Canal no YouTube: https://www.youtube.com/@MEGADROIDGAMESS
+---
 
+# 🚀 O Diferencial desta Versão
 
-## Antes de começar
+O projeto original cumpre muito bem o papel de mascarar o *Feature Level* em placas dedicadas. No entanto, ao tentar rodar o jogo em gráficos integrados (APUs), o motor gráfico costuma derrubar a aplicação por violação de acesso (`ACCESS_VIOLATION_READ`) devido ao orçamento de memória compartilhada ser reportado como zero (`VRAM_BUDGET: 0`).
 
-Este fix foi feito para quem instalou o driver AMD Agility SDK / Work Graphs e ainda fica preso no erro **FH201**.
+Esta versão adiciona hooks avançados diretamente na *vtable* do DirectX 12 para resolver o problema da VRAM, além de forçar a exposição de suporte a Shader Model 6.6 e *Enhanced Barriers* para compatibilidade com o motor gráfico.
 
-O driver usado nos testes foi:
+---
 
-```text
-amd-software-adrenalin-edition-23.10.01.14-win10-win11-work-graphs
-```
+# 📋 Pré-requisitos Fundamentais
 
-Importante:
+A DLL proxy atua como camada de compatibilidade para requisitos modernos do motor gráfico, mas a tradução física das instruções modernas ainda depende obrigatoriamente do driver modificado instalado no sistema.
 
-- O fix é experimental.
-- Pode não funcionar em todas as placas ou versões do jogo.
-- Não inclui arquivos do jogo.
-- Não remove DRM.
-- Use por sua conta e risco.
+O driver utilizado e homologado durante os testes foi:
 
-## Como instalar
+- [AMD Software Adrenalin Edition - Agility SDK / Work Graphs](https://www.amd.com/en/resources/support-articles/release-notes/RN-RAD-MS-AGILITY-SDK-2023-6-711.html)
 
-1. Baixe este repositório.
+---
 
-2. Abra a pasta:
+# 🛠️ Como Instalar
 
-```text
-bin
-```
+1. Baixe os arquivos da última versão deste repositório.
+2. Acesse a pasta `bin`.
+3. Copie o arquivo `d3d12.dll`.
+4. Cole o arquivo diretamente no diretório principal do jogo (onde está localizado o executável `.exe`).
 
-3. Copie o arquivo:
+   **Exemplo:**
 
-```text
-d3d12.dll
-```
+   ```text
+   ...\GameFolder\d3d12.dll
+   ```
 
-4. Cole esse arquivo na pasta principal do jogo, onde fica o executável.
+5. Inicialize o jogo normalmente.
 
-Exemplo:
+---
 
-```text
-...\Forza Horizon 6\d3d12.dll
-```
+# ⚠️ Nota Importante de Inicialização
 
-A pasta certa é a mesma onde ficam vários arquivos `.dll` do jogo e o executável principal.
+Na primeiríssima tentativa após colocar a DLL, o jogo pode entrar em tela preta e travar.
 
-5. Abra o jogo normalmente.
+Isso é esperado devido à recalibração do cache gráfico e do shader cache do Windows.
 
-## Como saber se está funcionando
+Se isso acontecer:
 
-Se antes aparecia:
+1. Feche o jogo pelo Gerenciador de Tarefas.
+2. Aguarde alguns segundos.
+3. Abra novamente.
 
-```text
-FH201
-FH205
-```
+Na maioria dos casos, a segunda inicialização permitirá que o jogo avance corretamente para a tela de otimização.
 
-e agora o jogo abre, o fix está carregando corretamente.
+---
 
-O fix também cria um arquivo de log na pasta do jogo:
+# 💡 Dicas de Uso e Solução de Problemas
 
-```text
-ForzaFix_RX580.log
-```
+## Jogo fecha em tela preta se aberto logo após ser fechado
 
-Se esse arquivo aparecer, significa que a DLL foi carregada.
+### Comportamento do Cache
 
-## Se ainda der FH205
+O Windows pode levar algum tempo para limpar completamente o cache de shaders acumulado na memória após longas sessões de jogo.
 
-O erro **FH205** normalmente significa que o driver ainda não está reportando suporte a **Enhanced Barriers**.
+Se o jogo for reaberto imediatamente, o motor gráfico pode colidir com recursos ainda bloqueados em memória.
 
-Nesse caso, instale o driver AMD Agility SDK / Work Graphs e reinicie o PC.
+### Solução
 
-Depois rode:
+Após fechar o jogo, aguarde aproximadamente 1 minuto antes de iniciar novamente.
+
+---
+
+## O erro FH205 continua aparecendo
+
+Isso normalmente indica que o driver modificado não ativou corretamente o suporte esperado pelo motor gráfico.
+
+### Verificações recomendadas
+
+- Reinicie o computador após instalar o driver AMD.
+- Valide o suporte utilizando:
 
 ```text
 tools\D3D12Caps.exe
 ```
 
-Procure esta linha:
+---
+
+## Fechamentos repentinos na abertura (Crash on Launch)
+
+### Verificações recomendadas
+
+- Verifique a integridade dos arquivos do jogo.
+- Remova temporariamente:
+  - ReShade
+  - OptiScaler
+  - overlays
+  - outros injetores
+  - arquivos adicionais como `dxgi.dll`
+
+---
+
+# ⚠️ Limitações Conhecidas
+
+Este projeto realiza spoofing de capacidades modernas do Direct3D 12, porém não implementa completamente todos os recursos em nível de hardware.
+
+Isso significa que:
+
+- Mesh Shaders reais não são implementados.
+- Alguns pipelines gráficos podem continuar instáveis.
+- Crashes durante compilação de shaders ainda podem ocorrer.
+- Algumas cutscenes ou transições podem falhar dependendo da build do Windows e do driver.
+- O suporte depende fortemente do driver Agility SDK utilizado.
+
+---
+
+# 💻 Espaço do Desenvolvedor (Compilação)
+
+Caso queira modificar o código-fonte, a lógica principal reside em:
 
 ```text
-OPTIONS12: OK EnhancedBarriersSupported=TRUE
+src/D3D12Proxy.cpp
 ```
 
-Se aparecer `FALSE`, o driver não ativou o suporte necessário.
+## Ambiente Requerido
 
-## Se der FHE01 ou fechar sozinho
+- Visual Studio com ferramentas de build C++
+- Windows SDK atualizado
 
-Tente:
+---
 
-- verificar a integridade dos arquivos do jogo;
-- remover outros mods/fixes;
-- remover `dxgi.dll`, ReShade, OptiScaler ou outras DLLs de terceiros da pasta do jogo;
-- testar com o jogo limpo e só este `d3d12.dll`.
+## Compilação via Script
 
-## Como remover o fix
-
-Apague este arquivo da pasta do jogo:
-
-```text
-d3d12.dll
-```
-
-Pronto. O jogo volta a usar o DirectX normal do Windows.
-
-## Para desenvolvedores
-
-O código fonte está em:
-
-```text
-src
-```
-
-Para compilar, instale:
-
-- Visual Studio 2022 Build Tools;
-- Desktop development with C++;
-- Windows SDK.
-
-Depois rode:
+Utilize PowerShell no ambiente de desenvolvedor do Visual Studio:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\build_proxy.ps1
 ```
 
-A DLL compilada vai sair em:
+---
 
-```text
-proxy_build\d3d12.dll
+## Nota sobre Compatibilidade do SDK
+
+Dependendo da build do Windows SDK, o compilador pode ocultar definições modernas relacionadas à memória de vídeo do Direct3D 12.
+
+Caso ocorram erros de compilação relacionados a identificadores de VRAM, utilize compilação direta via CLI:
+
+```powershell
+cl.exe /c /EHsc /O2 /DNTDDI_WIN10_RS1 /I. src\D3D12Proxy.cpp
 ```
 
-## O que o fix faz
+---
 
-Ele cria uma DLL proxy chamada `d3d12.dll`.
+# 📜 Histórico de Modificações e Créditos
 
-Ela intercepta algumas chamadas do DirectX 12 e força o jogo a enxergar suporte a `Feature Level 12_1`, ajudando a passar pelo erro **FH201**.
+## v1.0 — Base Original (João Lucas)
 
-O suporte a **Enhanced Barriers** precisa vir do driver. Por isso o driver AMD Agility SDK / Work Graphs é importante.
+- Engenharia reversa inicial e criação da estrutura de proxy via DLL.
+- Implementação do bypass focado no erro FH201 para arquitetura Polaris (RX 580).
+
+### Referências
+
+- [Canal Megadroidgames](https://www.youtube.com/@MEGADROIDGAMESS)
+- [Repositório Original](https://github.com/Megadroidgames/Forza-Horizon-6-RX-580-FH201-FH205-Fix)
+
+---
+
+## v1.1+ — Variante de Compatibilidade Universal AMD (JuniorD-Isael)
+
+### Bypass de VRAM para APUs
+
+Adicionado hook no índice 56 da *vtable* (`QueryVideoMemoryInfo`) utilizando mapeamento direto de memória via ponteiros (`uint64_t`).
+
+Isso contorna o problema de orçamento zero de memória compartilhada que causava falhas críticas de leitura em gráficos integrados.
+
+---
+
+### Spoofing Avançado no Dispositivo
+
+Forçada a exposição de capacidades críticas do Direct3D 12:
+
+- `MaxSupportedFeatureLevel` → `12_1`
+- `HighestShaderModel` → `6.6`
+- `EnhancedBarriersSupported` → `TRUE`
+- `MeshShaderTier` → `Tier 1`
+- `SamplerFeedbackTier` → `Tier 1`
+
+---
+
+### Refatoração Estrutural
+
+- Centralização do ciclo de hooks em `PatchDeviceInterfaces`
+- Limpeza de helpers redundantes
+- Expansão do teto de buffer para logs de monitoramento
+
+---
+
+Este fork mantém os devidos créditos ao trabalho original de João Lucas, expandindo a compatibilidade prática para novos cenários envolvendo APUs AMD e hardware integrado.
